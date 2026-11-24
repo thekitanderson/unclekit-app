@@ -1,0 +1,19 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://lbpyqyinecuabgnituey.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_tWNkDKb0LC_eO-UCl1RXDA_dqb5kGbX",
+        "EXPO_PUBLIC_API_URL": "https://unclekit-e2e-test.vercel.app"
+      }
+    }
+  }
+}
