@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar'
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ActivityIndicator, FlatList, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View,
+  ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View,
 } from 'react-native'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
@@ -28,10 +29,13 @@ export default function App() {
 
   if (!ready) return <Center><ActivityIndicator /></Center>
   return (
-    <SafeAreaView style={s.root}>
-      <StatusBar style="dark" />
-      {session ? <Member session={session} /> : <Login />}
-    </SafeAreaView>
+    <SafeAreaProvider>
+      {/* Keeps content clear of the status bar and the phone's own navigation buttons */}
+      <SafeAreaView style={s.root} edges={['top', 'bottom', 'left', 'right']}>
+        <StatusBar style="dark" />
+        {session ? <Member session={session} /> : <Login />}
+      </SafeAreaView>
+    </SafeAreaProvider>
   )
 }
 
