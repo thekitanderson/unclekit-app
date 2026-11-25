@@ -108,6 +108,7 @@ function Classroom() {
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [done, setDone] = useState<Set<string>>(new Set())
   const [lesson, setLesson] = useState<Lesson | null>(null)
+  const [admin, setAdmin] = useState(false)
 
   const loadCourses = useCallback(async () => {
     const { data } = await supabase.from('courses').select('id, slug, title, description').order('sort')
@@ -122,10 +123,12 @@ function Classroom() {
 
   async function openCourse(c: Course) {
     setCourse(c)
-    const [{ data: ls }, { data: pr }] = await Promise.all([
-      supabase.from('lessons').select('id, title, body_md, course_id, video_id').eq('course_id', c.id).order('sort'),
+    const [{ data: ls }, { data: pr }, { data: isAdmin }] = await Promise.all([
+      supabase.from('lessons').select('id, title, body_md, course_id, video_id').eq('course_id', c.id).order('sort').order('id'),
       supabase.from('lesson_progress').select('lesson_id'),
+      supabase.rpc('is_admin'),
     ])
+    setAdmin(Boolean(isAdmin))
     setLessons(ls ?? [])
     setDone(new Set((pr ?? []).map((p) => p.lesson_id)))
   }
@@ -140,15 +143,24 @@ function Classroom() {
       <ScrollView style={s.pad}>
         <Btn title="← Back" secondary onPress={() => setLesson(null)} />
         <Text testID="lesson-title" style={s.h1}>{lesson.title}</Text>
-        {lesson.video_id ? <Video kind="lesson" id={lesson.id} /> : null}
+        {lesson.video_id ? <Video kind="lesson" id={lesson.id} onEnded={done.has(lesson.id) ? undefined : () => complete(lesson)} /> : null}
         {lesson.body_md ? <Text style={s.p}>{lesson.body_md}</Text> : null}
         {done.has(lesson.id)
           ? <Text testID="completed" style={s.badge}>Completed</Text>
-          : <Btn testID="mark-complete" title="Mark complete" onPress={() => complete(lesson)} />}
+          : lesson.video_id
+            ? <Text testID="watch-to-unlock" style={s.muted}>Watch to the end to unlock the next lesson.</Text>
+            : <Btn testID="mark-complete" title="Mark complete" onPress={() => complete(lesson)} />}
       </ScrollView>
     )
   }
   if (course) {
+    // Lessons open in order: one is locked until every lesson before it is complete. (The database enforces the same rule.)
+    let open = true
+    const locked = new Set<string>()
+    for (const l of lessons) {
+      if (!open && !admin) locked.add(l.id)
+      if (!done.has(l.id)) open = false
+    }
     return (
       <View style={s.pad}>
         <Btn title="← Classroom" secondary onPress={() => setCourse(null)} />
@@ -156,9 +168,11 @@ function Classroom() {
         <FlatList data={lessons} keyExtractor={(l) => l.id}
           ListEmptyComponent={<Text style={s.muted}>No lessons available.</Text>}
           renderItem={({ item }) => (
-            <Pressable testID={`lesson-${item.title}`} onPress={() => setLesson(item)} style={s.row}>
-              <Text style={s.rowText}>{item.title}{done.has(item.id) ? '  ✓' : ''}</Text>
-            </Pressable>
+            locked.has(item.id)
+              ? <View testID={`locked-${item.title}`} style={s.row}><Text style={[s.rowText, s.muted]}>🔒 {item.title}</Text></View>
+              : <Pressable testID={`lesson-${item.title}`} onPress={() => setLesson(item)} style={s.row}>
+                  <Text style={s.rowText}>{item.title}{done.has(item.id) ? '  ✓' : ''}</Text>
+                </Pressable>
           )} />
       </View>
     )
