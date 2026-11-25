@@ -12,7 +12,7 @@ import { listenForAuthLinks, signInWithGoogle } from './lib/authLink'
 
 // No purchasing and no links to purchasing anywhere in the app. Membership is bought on unclekit.com.
 
-type Tab = 'classroom' | 'posts' | 'leaderboard' | 'account'
+type Tab = 'classroom' | 'posts' | 'account'
 type Course = { id: string; slug: string; title: string; description: string | null }
 type Lesson = { id: string; title: string; body_md: string | null; course_id: string; video_id: string | null }
 
@@ -89,13 +89,12 @@ function Member({ session }: { session: Session }) {
       <View style={{ flex: 1 }}>
         {tab === 'classroom' && <Classroom />}
         {tab === 'posts' && <Posts />}
-        {tab === 'leaderboard' && <Leaderboard />}
         {tab === 'account' && <Account email={session.user.email ?? ''} />}
       </View>
       <View style={s.tabs}>
-        {(['classroom', 'posts', 'leaderboard', 'account'] as Tab[]).map((t) => (
+        {(['classroom', 'posts', 'account'] as Tab[]).map((t) => (
           <Pressable key={t} testID={`tab-${t}`} onPress={() => setTab(t)} style={s.tab}>
-            <Text style={[s.tabText, tab === t && s.tabActive]}>{{ classroom: 'Classroom', posts: 'From Kit', leaderboard: 'Leaderboard', account: 'Account' }[t]}</Text>
+            <Text style={[s.tabText, tab === t && s.tabActive]}>{{ classroom: 'Classroom', posts: 'From Kit', account: 'Account' }[t]}</Text>
           </Pressable>
         ))}
       </View>
@@ -195,29 +194,6 @@ function Posts() {
           {item.title ? <Text style={s.h2}>{item.title}</Text> : null}
           <Text style={s.p}>{item.body_md}</Text>
           <Text style={s.muted}>{new Date(item.created_at).toLocaleDateString('en-US')}</Text>
-        </View>
-      )} />
-  )
-}
-
-function Leaderboard() {
-  const [rows, setRows] = useState<{ id: string; display_name: string; handle: string; points: number; level: number }[]>([])
-  const [names, setNames] = useState<Map<number, string>>(new Map())
-  useEffect(() => {
-    Promise.all([
-      supabase.from('leaderboard').select('id, display_name, handle, points, level').limit(100),
-      supabase.from('levels').select('level, name'),
-    ]).then(([{ data: r }, { data: l }]) => {
-      setRows(r ?? [])
-      setNames(new Map((l ?? []).map((x) => [x.level, x.name])))
-    })
-  }, [])
-  return (
-    <FlatList style={s.pad} data={rows} keyExtractor={(r) => r.id}
-      ListHeaderComponent={<Text style={s.h1}>Leaderboard</Text>}
-      renderItem={({ item, index }) => (
-        <View testID={`lb-${item.handle}`} style={s.row}>
-          <Text style={s.rowText}>{index + 1}. {item.display_name} · {names.get(item.level) ?? `Level ${item.level}`} · {item.points}</Text>
         </View>
       )} />
   )
